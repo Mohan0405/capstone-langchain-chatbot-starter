@@ -1,31 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Thinkbot</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="static/style.css">
+  <title>Chatbot Interface</title>
 </head>
 <body>
-    <div class="container mt-5">
-        <div id="chat-container" class="chat-container"></div>
-        <div class="row">
-            <div class="col">
-                <div>
-                    <select class="form-control" id="function-select">
-                        <option value="answer">Answer as Chatbot</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col">
-                <div class="input-group-append">
-                    <input type="text" id="message-input" placeholder="Type your message here...">
-                    <button id="send-btn" class="btn btn-primary">Send</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
-    <script src="static/main.js"></script>
+  <h1>Chat with the Bot</h1>
+
+  <label for="mode">Select Mode:</label>
+  <select id="mode">
+    <option value="chat">Chatbot</option>
+    <option value="kb">Answer from Knowledgebase</option>
+  </select>
+
+  <br><br>
+
+  <input type="text" id="message" placeholder="Ask something..." size="50">
+  <button onclick="sendMessage()">Send</button>
+
+  <h3>Response:</h3>
+  <div id="response"></div>
+
+  <script>
+    async function sendMessage() {
+      const message = document.getElementById("message").value;
+      const mode = document.getElementById("mode").value;
+      const url = mode === "kb" ? "/kbanswer" : "/answer";
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await response.json();
+      document.getElementById("response").innerText = data.message || data.error;
+    }
+  </script>
 </body>
 </html>
