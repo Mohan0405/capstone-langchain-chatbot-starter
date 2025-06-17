@@ -73,6 +73,17 @@ def kbanswer():
 
     answer = answer_from_knowledgebase(message)
     return jsonify({"message": answer}), 200
+@app.route("/answer", methods=["POST"])
+def answer():
+    data = request.get_json()
+    message = data.get("message")
+
+    if not message:
+        return jsonify({"error": "Missing 'message' in request."}), 400
+
+    # Example simple echo or LLM call
+    response = f"You asked: {message}"  # Replace with actual Cohere/LLM logic
+    return jsonify({"message": response}), 200
 
 if __name__ == "__main__":
     qa = load_db()
