@@ -1,27 +1,22 @@
 .chat-container {
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    height: 500px;
-    padding: 10px;
-    overflow-y: scroll;
+    height: 300px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.user-message {
-    background-color: #eaf2f8;
-    padding: 5px;
+.chat-container div {
     margin-bottom: 10px;
 }
 
-.assistant-message {
-    background-color: #f1f0f0;
-    padding: 5px;
-    margin-bottom: 10px;
+.chat-user {
+    font-weight: bold;
+    color: #007bff;
 }
 
-.text-input {
-    width: 100%;
-    margin: 10px 0;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+.chat-bot {
+    font-weight: bold;
+    color: #28a745;
 }
