@@ -17,14 +17,14 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 if not COHERE_API_KEY:
     raise ValueError("COHERE_API_KEY is not set. Please add it to your .env file.")
 
-# Initialize Flask
+# Initialize Flask app
 app = Flask(__name__)
 
-# Global variables
+# Global chains
 qa = None
 chatbot_chain = None
 
-# Load vector DB for knowledgebase
+# Load vector database and initialize RetrievalQA
 def load_db():
     try:
         embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY)
@@ -41,16 +41,20 @@ def load_db():
         print("❌ Error loading vector DB:", e)
         return None
 
-# Initialize chatbot conversation chain
+# Initialize chatbot conversation chain with memory
 def init_chatbot():
-    llm = ChatCohere(cohere_api_key=COHERE_API_KEY)
-    memory = ConversationBufferMemory()
-    prompt = ChatPromptTemplate.from_template(
-        "You are a friendly, helpful AI assistant.\n\n{history}\nHuman: {input}\nAssistant:"
-    )
-    return ConversationChain(llm=llm, memory=memory, prompt=prompt)
+    try:
+        llm = ChatCohere(cohere_api_key=COHERE_API_KEY)
+        memory = ConversationBufferMemory()
+        prompt = ChatPromptTemplate.from_template(
+            "You are a friendly, helpful AI assistant.\n\n{history}\nHuman: {input}\nAssistant:"
+        )
+        return ConversationChain(llm=llm, memory=memory, prompt=prompt)
+    except Exception as e:
+        print("❌ Error initializing chatbot:", e)
+        return None
 
-# Answer from knowledgebase
+# Answer via knowledgebase
 def answer_from_knowledgebase(message: str) -> str:
     if qa is None:
         return "Knowledgebase is not available."
@@ -71,10 +75,12 @@ def answer_as_chatbot(message: str) -> str:
         print("❌ Chatbot Error:", e)
         return "An error occurred while chatting with the bot."
 
+# Home route
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html", title="Thinkbot AI")
 
+# Knowledgebase API
 @app.route("/kbanswer", methods=["POST"])
 def kbanswer():
     data = request.get_json()
@@ -82,4 +88,20 @@ def kbanswer():
     if not message:
         return jsonify({"error": "Missing 'message' in request."}), 400
     answer = answer_from_knowledgebase(message)
-    return jsonify({"message": answ
+    return jsonify({"message": answer}), 200
+
+# Chatbot API
+@app.route("/answer", methods=["POST"])
+def answer():
+    data = request.get_json()
+    message = data.get("message")
+    if not message:
+        return jsonify({"error": "Missing 'message' in request."}), 400
+    answer = answer_as_chatbot(message)
+    return jsonify({"message": answer}), 200
+
+# Initialize chains and run server
+if __name__ == "__main__":
+    qa = load_db()
+    chatbot_chain = init_chatbot()
+    app.run(host="0.0.0.0", port=5000, debug=False)
