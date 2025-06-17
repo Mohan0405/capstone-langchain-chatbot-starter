@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 
 from langchain.chains import RetrievalQA
@@ -19,11 +19,6 @@ app = Flask(__name__)
 
 # Global variable for the QA chain
 qa = None
-
-@app.route("/", methods=["GET"])
-def index():
-    return render_template("index.html", title="Chatbot")
-
 
 def load_db():
     """
@@ -61,6 +56,10 @@ def answer_from_knowledgebase(message: str) -> str:
         print("❌ Error during QA:", e)
         return "An error occurred while processing your request."
 
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html", title="Knowledgebase Chatbot")
+
 @app.route("/kbanswer", methods=["POST"])
 def kbanswer():
     """
@@ -74,10 +73,6 @@ def kbanswer():
 
     answer = answer_from_knowledgebase(message)
     return jsonify({"message": answer}), 200
-
-@app.route("/", methods=["GET"])
-def index():
-    return jsonify({"status": "Knowledgebase Chatbot is running."}), 200
 
 if __name__ == "__main__":
     qa = load_db()
