@@ -10,22 +10,23 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
 
 # Load environment variables
+print("🔄 Starting app...")
 load_dotenv()
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
 if not COHERE_API_KEY:
-    raise ValueError("COHERE_API_KEY is not set. Please add it to your .env file.")
+    print("❌ COHERE_API_KEY is missing!")
+    raise ValueError("COHERE_API_KEY is not set. Please add it in .env or Render env vars.")
 
-# Initialize Flask app
+print("🔑 COHERE_API_KEY loaded.")
+
+# Initialize Flask
 app = Flask(__name__)
 
-# Global chains
-qa = None
-chatbot_chain = None
-
-# Load vector database and initialize RetrievalQA
+# Load knowledgebase vector store
 def load_db():
     try:
+        print("⚙️ Loading vector DB...")
         embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY)
         vectordb = Chroma(persist_directory='db', embedding_function=embeddings)
         qa_chain = RetrievalQA.from_chain_type(
@@ -34,74 +35,71 @@ def load_db():
             retriever=vectordb.as_retriever(),
             return_source_documents=True
         )
-        print("✅ Vector DB loaded successfully.")
+        print("✅ Vector DB loaded.")
         return qa_chain
     except Exception as e:
         print("❌ Error loading vector DB:", e)
         return None
 
-# Initialize chatbot conversation chain with memory
+# Initialize chatbot chain
 def init_chatbot():
     try:
+        print("⚙️ Initializing chatbot...")
         llm = Cohere(cohere_api_key=COHERE_API_KEY)
         memory = ConversationBufferMemory()
         prompt = ChatPromptTemplate.from_template(
-            "You are a friendly, helpful AI assistant.\n\n{history}\nHuman: {input}\nAssistant:"
+            "You are a helpful assistant.\n\n{history}\nHuman: {input}\nAssistant:"
         )
-        return ConversationChain(llm=llm, memory=memory, prompt=prompt)
+        chain = ConversationChain(llm=llm, memory=memory, prompt=prompt)
+        print("✅ Chatbot initialized.")
+        return chain
     except Exception as e:
         print("❌ Error initializing chatbot:", e)
         return None
 
+# Global chains (must run on cold start, including on Render)
+qa = load_db()
+chatbot_chain = init_chatbot()
 
-# Answer via knowledgebase
-def answer_from_knowledgebase(message: str) -> str:
-    if qa is None:
-        return "Knowledgebase is not available."
-    try:
-        result = qa({"query": message})
-        return result['result']
-    except Exception as e:
-        print("❌ Knowledgebase Error:", e)
-        return "An error occurred while processing your request."
-
-# Answer as chatbot
-def answer_as_chatbot(message: str) -> str:
-    if chatbot_chain is None:
-        return "Chatbot is not available."
-    try:
-        return chatbot_chain.predict(input=message)
-    except Exception as e:
-        print("❌ Chatbot Error:", e)
-        return "An error occurred while chatting with the bot."
-
-# Home route
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html", title="Thinkbot AI")
 
-# Knowledgebase API
-@app.route("/kbanswer", methods=["POST"])
-def kbanswer():
-    data = request.get_json()
-    message = data.get("message")
-    if not message:
-        return jsonify({"error": "Missing 'message' in request."}), 400
-    answer = answer_from_knowledgebase(message)
-    return jsonify({"message": answer}), 200
-
-# Chatbot API
 @app.route("/answer", methods=["POST"])
 def answer():
     data = request.get_json()
     message = data.get("message")
     if not message:
-        return jsonify({"error": "Missing 'message' in request."}), 400
-    answer = answer_as_chatbot(message)
-    return jsonify({"message": answer}), 200
-# Initialize chains and run server
-#if __name__ == "__main__":
- #   qa = load_db()
-  #  chatbot_chain = init_chatbot()
-   # app.run(host="0.0.0.0", port=5000, debug=False)
+        return jsonify({"error": "Missing 'message'"}), 400
+    if not chatbot_chain:
+        return jsonify({"message": "❌ Chatbot is not available."}), 500
+    try:
+        response = chatbot_chain.predict(input=message)
+        return jsonify({"message": response}), 200
+    except Exception as e:
+        print("❌ Chatbot Error:", e)
+        return jsonify({"message": "Chatbot error occurred"}), 500
 
+@app.route("/kbanswer", methods=["POST"])
+def kbanswer():
+    data = request.get_json()
+    message = data.get("message")
+    if not message:
+        return jsonify({"error": "Missing 'message'"}), 400
+    if not qa:
+        return jsonify({"message": "❌ Knowledgebase is not available."}), 500
+    try:
+        result = qa({"query": message})
+        return jsonify({"message": result['result']}), 200
+    except Exception as e:
+        print("❌ Knowledgebase Error:", e)
+        return jsonify({"message": "Knowledgebase error occurred"}), 500
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "qa_ready": qa is not None,
+        "chatbot_ready": chatbot_chain is not None
+    })
+
+# DO NOT include `if __name__ == "__main__"` for Render
