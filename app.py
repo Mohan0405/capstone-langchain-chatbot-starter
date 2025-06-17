@@ -99,5 +99,9 @@ def answer():
         return jsonify({"error": "Missing 'message' in request."}), 400
     answer = answer_as_chatbot(message)
     return jsonify({"message": answer}), 200
-
+# Initialize chains and run server
+#if __name__ == "__main__":
+ #   qa = load_db()
+  #  chatbot_chain = init_chatbot()
+   # app.run(host="0.0.0.0", port=5000, debug=False)
 
