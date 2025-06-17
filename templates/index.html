@@ -7,8 +7,9 @@
 </head>
 <body>
     <div class="container mt-5">
-        <div id="chat-container" class="chat-container mb-3"></div>
-        
+        <h2 class="mb-4">Thinkbot</h2>
+        <div id="chat-container" class="border p-3 mb-3" style="min-height: 200px;"></div>
+
         <div class="row">
             <div class="col-md-3">
                 <select class="form-control" id="function-select">
@@ -25,32 +26,39 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script>
         document.getElementById("send-btn").addEventListener("click", async function () {
-            const message = document.getElementById("message-input").value;
-            const functionType = document.getElementById("function-select").value;
+            const messageInput = document.getElementById("message-input");
+            const message = messageInput.value.trim();
+            const mode = document.getElementById("function-select").value;
+            const chatContainer = document.getElementById("chat-container");
 
             if (!message) return;
 
-            const response = await fetch(`/${functionType}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
-            });
+            // Show user's message
+            chatContainer.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
 
-            const data = await response.json();
-            const reply = data.message || data.error;
+            // Clear input
+            messageInput.value = "";
 
-            const container = document.getElementById("chat-container");
-            container.innerHTML += `
-                <div><strong>You:</strong> ${message}</div>
-                <div><strong>Bot:</strong> ${reply}</div>
-                <hr>
-            `;
+            try {
+                const response = await fetch(`/${mode}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ message })
+                });
 
-            document.getElementById("message-input").value = "";
+                const data = await response.json();
+                const reply = data.message || data.error || "No response from server.";
+
+                // Show bot's reply
+                chatContainer.innerHTML += `<div><strong>Bot:</strong> ${reply}</div><hr>`;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } catch (error) {
+                chatContainer.innerHTML += `<div><strong>Bot:</strong> Error occurred: ${error.message}</div><hr>`;
+            }
         });
     </script>
 </body>
