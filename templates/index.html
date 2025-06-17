@@ -7,32 +7,37 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center mb-4">💡 Thinkbot AI</h2>
-
-        <div class="card">
-            <div id="chat-container" class="card-body chat-container"></div>
-        </div>
-
-        <div class="form-row align-items-center mt-3">
-            <div class="col-md-3">
-                <select class="form-control" id="function-select">
-                    <option value="answer">Answer as Chatbot</option>
-                    <option value="kbanswer">Answer from Knowledgebase</option>
-                </select>
+    <div class="background-overlay">
+        <div class="container mt-5">
+            <div class="text-center text-white mb-4">
+                <h1>🤖 Thinkbot AI</h1>
+                <p>Your friendly chatbot assistant</p>
             </div>
-            <div class="col-md-6">
-                <input type="text" id="message-input" class="form-control" placeholder="Ask me anything...">
-            </div>
-            <div class="col-md-3 d-flex">
-                <button id="send-btn" class="btn btn-primary mr-2 flex-grow-1">Send</button>
-                <button id="clear-btn" class="btn btn-secondary">Clear</button>
-            </div>
-        </div>
 
-        <div id="loading-indicator" class="text-center mt-2" style="display: none;">
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            <span>Thinking...</span>
+            <div class="card shadow-lg">
+                <div id="chat-container" class="card-body chat-container"></div>
+
+                <div class="card-footer">
+                    <div class="form-row">
+                        <div class="col-md-3 mb-2">
+                            <select class="form-control" id="function-select">
+                                <option value="answer">Answer as Chatbot</option>
+                                <option value="kbanswer">Answer from Knowledgebase</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <input type="text" id="message-input" class="form-control" placeholder="Ask me anything...">
+                        </div>
+                        <div class="col-md-3 d-flex mb-2">
+                            <button id="send-btn" class="btn btn-success mr-2 flex-grow-1">Send</button>
+                            <button id="clear-btn" class="btn btn-outline-danger">Clear</button>
+                        </div>
+                    </div>
+                    <div id="loading-indicator" class="text-center mt-2" style="display: none;">
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"></span> Thinking...
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

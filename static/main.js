@@ -9,7 +9,7 @@ async function sendMessage() {
 
     if (!message) return;
 
-    appendMessage("You", message, "chat-user");
+    appendMessage("You", message, "user");
     messageInput.value = "";
     toggleLoading(true);
 
@@ -24,21 +24,32 @@ async function sendMessage() {
 
         const data = await response.json();
         const reply = data.message || data.error || "No response.";
-
-        appendMessage("Thinkbot", reply, "chat-bot");
+        appendMessage("Thinkbot", reply, "bot");
     } catch (err) {
-        appendMessage("Thinkbot", "❌ Error: " + err.message, "chat-bot");
+        appendMessage("Thinkbot", "❌ Error: " + err.message, "bot");
     } finally {
         toggleLoading(false);
-        autoScroll();
+        scrollToBottom();
     }
 }
 
-function appendMessage(sender, text, cssClass) {
+function appendMessage(sender, text, role) {
     const chatContainer = document.getElementById("chat-container");
-    const messageDiv = document.createElement("div");
-    messageDiv.innerHTML = `<span class="${cssClass}">${sender}:</span> ${text}`;
-    chatContainer.appendChild(messageDiv);
+
+    const row = document.createElement("div");
+    row.classList.add("chat-row");
+
+    const avatar = document.createElement("div");
+    avatar.classList.add("chat-avatar");
+    avatar.innerText = role === "user" ? "🧑" : "🤖";
+
+    const bubble = document.createElement("div");
+    bubble.classList.add("chat-bubble", role);
+    bubble.innerText = text;
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatContainer.appendChild(row);
 }
 
 function clearChat() {
@@ -49,7 +60,7 @@ function toggleLoading(show) {
     document.getElementById("loading-indicator").style.display = show ? "block" : "none";
 }
 
-function autoScroll() {
+function scrollToBottom() {
     const chatContainer = document.getElementById("chat-container");
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
