@@ -6,7 +6,6 @@ from langchain.chains import RetrievalQA, ConversationChain
 from langchain.embeddings import CohereEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.llms import Cohere
-#from langchain.chat_models import ChatCohere
 from langchain.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
 
@@ -44,7 +43,7 @@ def load_db():
 # Initialize chatbot conversation chain with memory
 def init_chatbot():
     try:
-        llm = ChatCohere(cohere_api_key=COHERE_API_KEY)
+        llm = Cohere(cohere_api_key=COHERE_API_KEY)
         memory = ConversationBufferMemory()
         prompt = ChatPromptTemplate.from_template(
             "You are a friendly, helpful AI assistant.\n\n{history}\nHuman: {input}\nAssistant:"
@@ -53,6 +52,7 @@ def init_chatbot():
     except Exception as e:
         print("❌ Error initializing chatbot:", e)
         return None
+
 
 # Answer via knowledgebase
 def answer_from_knowledgebase(message: str) -> str:
