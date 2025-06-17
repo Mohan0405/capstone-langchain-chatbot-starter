@@ -20,6 +20,11 @@ app = Flask(__name__)
 # Global variable for the QA chain
 qa = None
 
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html", title="Chatbot")
+
+
 def load_db():
     """
     Load the persisted Chroma vector store and return a RetrievalQA chain.
