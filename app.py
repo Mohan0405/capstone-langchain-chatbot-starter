@@ -2,10 +2,13 @@ import os
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 
-from langchain.chains import RetrievalQA
+from langchain.chains import RetrievalQA, ConversationChain
 from langchain.embeddings import CohereEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.llms import Cohere
+from langchain.chat_models import ChatCohere
+from langchain.prompts import ChatPromptTemplate
+from langchain.memory import ConversationBufferMemory
 
 # Load environment variables
 load_dotenv()
@@ -17,19 +20,15 @@ if not COHERE_API_KEY:
 # Initialize Flask
 app = Flask(__name__)
 
-# Global variable for the QA chain
+# Global variables
 qa = None
+chatbot_chain = None
 
+# Load vector DB for knowledgebase
 def load_db():
-    """
-    Load the persisted Chroma vector store and return a RetrievalQA chain.
-    """
     try:
         embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY)
-        vectordb = Chroma(
-            persist_directory='db',
-            embedding_function=embeddings
-        )
+        vectordb = Chroma(persist_directory='db', embedding_function=embeddings)
         qa_chain = RetrievalQA.from_chain_type(
             llm=Cohere(cohere_api_key=COHERE_API_KEY),
             chain_type="refine",
@@ -42,49 +41,45 @@ def load_db():
         print("❌ Error loading vector DB:", e)
         return None
 
-def answer_from_knowledgebase(message: str) -> str:
-    """
-    Get an answer from the vector store using the QA chain.
-    """
-    if qa is None:
-        return "Knowledgebase is not available. Please check the backend logs."
+# Initialize chatbot conversation chain
+def init_chatbot():
+    llm = ChatCohere(cohere_api_key=COHERE_API_KEY)
+    memory = ConversationBufferMemory()
+    prompt = ChatPromptTemplate.from_template(
+        "You are a friendly, helpful AI assistant.\n\n{history}\nHuman: {input}\nAssistant:"
+    )
+    return ConversationChain(llm=llm, memory=memory, prompt=prompt)
 
+# Answer from knowledgebase
+def answer_from_knowledgebase(message: str) -> str:
+    if qa is None:
+        return "Knowledgebase is not available."
     try:
         result = qa({"query": message})
         return result['result']
     except Exception as e:
-        print("❌ Error during QA:", e)
+        print("❌ Knowledgebase Error:", e)
         return "An error occurred while processing your request."
+
+# Answer as chatbot
+def answer_as_chatbot(message: str) -> str:
+    if chatbot_chain is None:
+        return "Chatbot is not available."
+    try:
+        return chatbot_chain.predict(input=message)
+    except Exception as e:
+        print("❌ Chatbot Error:", e)
+        return "An error occurred while chatting with the bot."
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", title="Knowledgebase Chatbot")
+    return render_template("index.html", title="Thinkbot AI")
 
 @app.route("/kbanswer", methods=["POST"])
 def kbanswer():
-    """
-    Endpoint to handle POST requests for knowledgebase Q&A.
-    """
     data = request.get_json()
     message = data.get("message")
-
     if not message:
         return jsonify({"error": "Missing 'message' in request."}), 400
-
     answer = answer_from_knowledgebase(message)
-    return jsonify({"message": answer}), 200
-@app.route("/answer", methods=["POST"])
-def answer():
-    data = request.get_json()
-    message = data.get("message")
-
-    if not message:
-        return jsonify({"error": "Missing 'message' in request."}), 400
-
-    # Example simple echo or LLM call
-    response = f"You asked: {message}"  # Replace with actual Cohere/LLM logic
-    return jsonify({"message": response}), 200
-
-if __name__ == "__main__":
-    qa = load_db()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    return jsonify({"message": answ
