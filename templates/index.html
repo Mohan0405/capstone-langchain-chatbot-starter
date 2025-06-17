@@ -1,65 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Thinkbot</title>
+    <meta charset="UTF-8">
+    <title>Thinkbot AI</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="static/style.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container mt-5">
-        <h2 class="mb-4">Thinkbot</h2>
-        <div id="chat-container" class="border p-3 mb-3" style="min-height: 200px;"></div>
+        <h2 class="text-center mb-4">💡 Thinkbot AI</h2>
 
-        <div class="row">
+        <div class="card">
+            <div id="chat-container" class="card-body chat-container"></div>
+        </div>
+
+        <div class="form-row align-items-center mt-3">
             <div class="col-md-3">
                 <select class="form-control" id="function-select">
                     <option value="answer">Answer as Chatbot</option>
                     <option value="kbanswer">Answer from Knowledgebase</option>
                 </select>
             </div>
-            <div class="col-md-7">
-                <input type="text" id="message-input" class="form-control" placeholder="Type your message here...">
+            <div class="col-md-6">
+                <input type="text" id="message-input" class="form-control" placeholder="Ask me anything...">
             </div>
-            <div class="col-md-2">
-                <button id="send-btn" class="btn btn-primary btn-block">Send</button>
+            <div class="col-md-3 d-flex">
+                <button id="send-btn" class="btn btn-primary mr-2 flex-grow-1">Send</button>
+                <button id="clear-btn" class="btn btn-secondary">Clear</button>
             </div>
+        </div>
+
+        <div id="loading-indicator" class="text-center mt-2" style="display: none;">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span>Thinking...</span>
         </div>
     </div>
 
-    <script>
-        document.getElementById("send-btn").addEventListener("click", async function () {
-            const messageInput = document.getElementById("message-input");
-            const message = messageInput.value.trim();
-            const mode = document.getElementById("function-select").value;
-            const chatContainer = document.getElementById("chat-container");
-
-            if (!message) return;
-
-            // Show user's message
-            chatContainer.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
-
-            // Clear input
-            messageInput.value = "";
-
-            try {
-                const response = await fetch(`/${mode}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ message })
-                });
-
-                const data = await response.json();
-                const reply = data.message || data.error || "No response from server.";
-
-                // Show bot's reply
-                chatContainer.innerHTML += `<div><strong>Bot:</strong> ${reply}</div><hr>`;
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            } catch (error) {
-                chatContainer.innerHTML += `<div><strong>Bot:</strong> Error occurred: ${error.message}</div><hr>`;
-            }
-        });
-    </script>
+    <script src="/static/main.js"></script>
 </body>
 </html>
