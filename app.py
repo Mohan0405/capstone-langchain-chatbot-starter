@@ -1,90 +1,79 @@
 import os
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 
-from langchain.chat_models import ChatCohere
-from langchain.prompts import ChatPromptTemplate
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationChain
+from langchain.chains import RetrievalQA
+from langchain.embeddings import CohereEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.llms import Cohere
 
 # Load environment variables
 load_dotenv()
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
 if not COHERE_API_KEY:
-    raise ValueError("Missing COHERE_API_KEY in .env file")
+    raise ValueError("COHERE_API_KEY is not set. Please add it to your .env file.")
 
 # Initialize Flask
 app = Flask(__name__)
 
-# Set up LangChain components
-llm = ChatCohere(cohere_api_key=COHERE_API_KEY)
-memory = ConversationBufferMemory()
-chat_prompt = ChatPromptTemplate.from_template(
-    "You are a helpful assistant.\n\nConversation history:\n{history}\nHuman: {input}\nAssistant:"
-)
-chat_chain = ConversationChain(
-    llm=llm,
-    memory=memory,
-    prompt=chat_prompt
-)
+# Global variable for the QA chain
+qa = None
 
-# --- Core Logic ---
-
-def answer_as_chatbot(message: str) -> str:
+def load_db():
+    """
+    Load the persisted Chroma vector store and return a RetrievalQA chain.
+    """
     try:
-        return chat_chain.predict(input=message)
+        embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY)
+        vectordb = Chroma(
+            persist_directory='db',
+            embedding_function=embeddings
+        )
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=Cohere(cohere_api_key=COHERE_API_KEY),
+            chain_type="refine",
+            retriever=vectordb.as_retriever(),
+            return_source_documents=True
+        )
+        print("✅ Vector DB loaded successfully.")
+        return qa_chain
     except Exception as e:
-        return f"An error occurred while generating the response: {str(e)}"
+        print("❌ Error loading vector DB:", e)
+        return None
 
 def answer_from_knowledgebase(message: str) -> str:
-    # Placeholder for knowledgebase Q&A logic
-    return "Knowledgebase answering is not implemented yet."
+    """
+    Get an answer from the vector store using the QA chain.
+    """
+    if qa is None:
+        return "Knowledgebase is not available. Please check the backend logs."
 
-def search_knowledgebase(message: str) -> str:
-    # Placeholder for knowledgebase search logic
-    return "Knowledgebase search is not implemented yet."
-
-# --- Routes ---
-
-@app.route("/", methods=["GET"])
-def index():
-    return render_template("index.html", title="Cohere Chatbot")
-
-@app.route("/answer", methods=["POST"])
-def answer():
-    data = request.get_json()
-    message = data.get("message")
-
-    if not message:
-        return jsonify({"error": "Missing 'message' in request"}), 400
-
-    response = answer_as_chatbot(message)
-    return jsonify({"message": response}), 200
+    try:
+        result = qa({"query": message})
+        return result['result']
+    except Exception as e:
+        print("❌ Error during QA:", e)
+        return "An error occurred while processing your request."
 
 @app.route("/kbanswer", methods=["POST"])
 def kbanswer():
+    """
+    Endpoint to handle POST requests for knowledgebase Q&A.
+    """
     data = request.get_json()
     message = data.get("message")
 
     if not message:
-        return jsonify({"error": "Missing 'message' in request"}), 400
+        return jsonify({"error": "Missing 'message' in request."}), 400
 
-    response = answer_from_knowledgebase(message)
-    return jsonify({"message": response}), 200
+    answer = answer_from_knowledgebase(message)
+    return jsonify({"message": answer}), 200
 
-@app.route("/search", methods=["POST"])
-def search():
-    data = request.get_json()
-    message = data.get("message")
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({"status": "Knowledgebase Chatbot is running."}), 200
 
-    if not message:
-        return jsonify({"error": "Missing 'message' in request"}), 400
-
-    sources = search_knowledgebase(message)
-    return jsonify({"sources": sources}), 200
-
-# --- Run Server ---
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=5000)
-
+    qa = load_db()
+    app.run(host="0.0.0.0", port=5000, debug=False)
