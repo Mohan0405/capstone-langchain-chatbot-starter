@@ -6,7 +6,7 @@ from langchain.chains import RetrievalQA, ConversationChain
 from langchain.embeddings import CohereEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.llms import Cohere
-from langchain.chat_models import ChatCohere
+#from langchain.chat_models import ChatCohere
 from langchain.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferMemory
 
